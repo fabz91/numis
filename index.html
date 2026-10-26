@@ -92,10 +92,11 @@ function apply(db,o){
  else if(o.op==='addYear'){if(db.c[t].indexOf(o.c)<0)db.c[t].push(o.c);var a=ys(db,t,o.d,o.c);a.push(String(o.y));a.sort(srt)}
  else if(o.op==='delYear'){var b=ys(db,t,o.d,o.c),i=b.indexOf(String(o.y));if(i>=0)b.splice(i,1)}
 }
+function val(v){var s=String(v).replace(/\s/g,'');if(/^\d+([.,]\d+)?$/.test(s)){var n=+s.replace(',','.');return n>=1?n+'€':Math.round(n*100)+'c'}return s.replace(/,0+€$/,'€')}
 function fromServer(st){
  var db=norm({c:{},y:{}});
  Object.keys(st.countries||{}).forEach(function(l){var t=key(l);if(t)db.c[t]=st.countries[l].slice()});
- (st.years||[]).forEach(function(r){var t=key(r[0]);if(!t||DN.indexOf(r[1])<0)return;if(db.c[t].indexOf(r[2])<0)db.c[t].push(r[2]);ys(db,t,r[1],r[2]).push(String(r[3]))});
+ (st.years||[]).forEach(function(r){var t=key(r[0]),d=val(r[1]);if(!t||DN.indexOf(d)<0)return;if(db.c[t].indexOf(r[2])<0)db.c[t].push(r[2]);ys(db,t,d,r[2]).push(String(r[3]))});
  T.forEach(function(t){DN.forEach(function(d){var m=db.y[t[0]][d];Object.keys(m).forEach(function(c){m[c].sort(srt)})})});
  return db;
 }
