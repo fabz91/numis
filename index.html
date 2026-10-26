@@ -39,7 +39,24 @@ input{cursor:text;width:100%}
 .sr{display:flex;align-items:center;justify-content:space-between;gap:10px}.sr .sub{margin:0}#pl{width:34px;height:34px;padding:0;flex:none;font-size:20px;line-height:1;font-weight:600;border-radius:9px;display:flex;align-items:center;justify-content:center}
 .md{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:9;padding:20px}.mb{background:var(--bg);border-radius:14px;padding:18px;max-width:340px;width:100%;text-align:center}.mb p{margin:0 0 14px;font-size:16px}.mb div{display:flex;gap:8px}.mb button{flex:1;padding:10px}.hd{display:flex;justify-content:space-between;align-items:center;gap:8px}.sy{font-size:12px;color:var(--mu);margin:-6px 0 10px}</style>
 <style>
-.hb{display:flex;gap:6px}.sy{display:flex;align-items:center;gap:6px}
+.hb{display:flex;gap:6px}.sy{display:flex;align-items:center;gap:6px}.sy:empty{display:none}
+.hd h1{display:flex;align-items:center;gap:8px}
+#cloud{background:none;border:0;padding:2px;line-height:0;cursor:pointer;flex:none}#cloud svg{width:24px;height:24px;display:block}
+#cloud .c{fill:#9a948d;transition:fill .3s}#cloud.ok .c{fill:#2f9e5b}
+.sep{display:flex;align-items:center;gap:12px;margin:26px 0 14px;color:var(--ac)}
+.sep::before,.sep::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--ac))}
+.sep::after{background:linear-gradient(90deg,var(--ac),transparent)}
+.sep span{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.sep i{width:9px;height:9px;border-radius:50%;border:2px solid var(--ac);display:block}
+.tt{background:var(--a2);border-radius:14px;padding:14px 12px 12px;user-select:none;-webkit-user-select:none}
+.tt h4{margin:0 0 12px;font-size:13px;color:var(--mu);font-weight:600;text-align:center}
+.tg{display:grid;grid-template-columns:repeat(4,1fr);row-gap:12px}
+.tg div{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;border-left:1px solid var(--bd)}
+.tg div:nth-child(4n+1){border-left:0}
+.tg b{font-size:19px;color:var(--ac);font-variant-numeric:tabular-nums}.tg span{font-size:12px;color:var(--mu)}
+.ta{display:flex;justify-content:space-between;align-items:baseline;margin-top:14px;padding-top:11px;border-top:1px dashed var(--ac);font-size:14px}
+.ta b{font-size:18px;color:var(--ac);font-variant-numeric:tabular-nums}
+.tt+.tt{margin-top:12px}.tg.eu b{font-size:15px;white-space:nowrap}
 #cf{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;align-items:center;justify-content:center;padding:16px}
 #cf .mb{max-width:420px;text-align:left}#cf label{display:block;font-size:13px;color:var(--mu);margin:10px 0 4px}
 /* Valeurs : tiennent sur une ligne au téléphone */
@@ -49,12 +66,15 @@ input{cursor:text;width:100%}
 #cf textarea{width:100%;font:12px monospace;color:var(--tx);background:var(--cd);border:1px solid var(--bd);border-radius:10px;padding:8px;display:none;margin-top:8px}
 </style>
 </head><body><div class="w">
-<div class="hd"><h1>🪙 Ma collection euro</h1><div class="hb"><button id="xp">⬇ Excel</button><button id="gear" aria-label="Réglages de synchronisation">⚙️</button></div></div><div class="sy" id="sy"></div>
+<div class="hd"><h1>🪙 Ma collection euro<button id="cloud" aria-label="État de la synchronisation avec Google Sheets"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="c" d="M7 19h10.5a4.5 4.5 0 0 0 .7-8.95A6 6 0 0 0 6.6 8.6 5.2 5.2 0 0 0 7 19z"/></svg></button></h1><div class="hb"><button id="xp">⬇ Excel</button><button id="gear" aria-label="Réglages de synchronisation">⚙️</button></div></div><div class="sy" id="sy"></div>
 <div id="np" class="ad" style="display:none;margin:0 0 10px"><input id="ni" placeholder="Nom du nouveau pays"><button id="nb">Ajouter</button></div>
 <div class="tabs" id="tb"></div>
 <div class="dn" id="dn"></div>
 <div class="sr"><div class="sub" id="sb"></div><button id="pl" aria-label="Ajouter un pays">＋</button></div>
 <div id="ct"></div>
+<div class="sep" aria-hidden="true"><span><i></i>Totaux<i></i></span></div>
+<div class="tt" id="tt"></div>
+<div class="tt" id="te"></div>
 <div class="note">Fonctionne hors ligne. Les modifications sont envoyées dans votre Google Sheet dès que la connexion revient.</div>
 </div>
 <div class="md" id="md"><div class="mb"><p id="mt"></p><div><button id="mc">Annuler</button><button class="on" id="mo">OK</button></div></div></div>
@@ -109,11 +129,21 @@ function render(){
  var names=DB.c[tab],tot=0,nb=0;
  names.forEach(function(n){var l=ys(DB,tab,dn,n).length;tot+=l;if(l)nb++});
  $('sb').textContent=tot+' année(s) trouvée(s) en '+dn+' · '+nb+' pays sur '+names.length;
+ renderTot();
  $('ct').innerHTML=names.map(function(n){
   var y=ys(DB,tab,dn,n),ed=ec===n;
   return '<div class="ct"><h3><span class="nm">'+esc(n)+(ed?'<button class="dl" data-del="'+esc(n)+'" aria-label="Supprimer le pays">✕</button>':'')+'</span><span class="r">'+y.length+'<span class="pc"><button class="pn'+(ed?' on':'')+'" data-p="'+esc(n)+'">'+(ed?'✔':'✏️')+'</button></span></span></h3><div class="ch">'
   +(y.length?y.map(function(v,i){return ed?'<button class="y x" data-c="'+esc(n)+'" data-i="'+i+'">'+esc(v)+' ✕</button>':'<span class="y">'+esc(v)+'</span>'}).join(''):'<span class="em">Aucune année</span>')
   +'</div>'+(ed?'<div class="ad"><input data-n="'+esc(n)+'" placeholder="Ajouter une année" inputmode="numeric"><button data-a="'+esc(n)+'">+</button></div>':'')+'</div>'}).join('');
+}
+var FACE={'2€':2,'1€':1,'50c':.5,'20c':.2,'10c':.1,'5c':.05,'2c':.02,'1c':.01};
+function eur(v){return v.toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}
+function renderTot(){
+ var all=0,cents=0,cn=[],ce=[];
+ DN.forEach(function(d){var s=0;DB.c[tab].forEach(function(n){s+=ys(DB,tab,d,n).length});all+=s;var c=Math.round(s*FACE[d]*100);cents+=c;
+  cn.push('<div><b>'+s+'</b><span>'+esc(d)+'</span></div>');ce.push('<div><b>'+eur(c/100)+'</b><span>'+esc(d)+'</span></div>')});
+ $('tt').innerHTML='<h4>'+esc(lab(tab))+' · nombre de pièces</h4><div class="tg">'+cn.join('')+'</div><div class="ta"><span>Toutes valeurs</span><b>'+all+' pièce(s)</b></div>';
+ $('te').innerHTML='<h4>'+esc(lab(tab))+' · valeur en euros</h4><div class="tg eu">'+ce.join('')+'</div><div class="ta"><span>Toutes valeurs</span><b>'+eur(cents/100)+'</b></div>';
 }
 var pend=null;
 function ask(txt,lb,fn){pend=fn;$('mt').textContent=txt;$('mo').textContent=lb;$('md').style.display='flex'}
@@ -144,16 +174,22 @@ $('nb').onclick=addCountry;$('ni').onkeydown=function(e){if(e.key==='Enter')addC
 /* ---------- Synchronisation Google Sheets ---------- */
 var busy=false,err=null,tmr=null;
 function hm(ts){var d=new Date(ts);return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}
-function status(msg){
- if(msg){$('sy').textContent=msg;return}
+var msgT=null;
+function detail(){
  var n=Q.length,w=n?' · '+n+' modification(s) en attente':'';
- if(!CFG.u||!CFG.k)$('sy').textContent='⚙️ Google Sheets non configuré — données sur cet appareil'+w;
- else if(!navigator.onLine)$('sy').textContent='📴 Hors ligne'+(n?w:' · tout est à jour');
- else if(busy)$('sy').textContent='⏳ Synchronisation…';
- else if(err)$('sy').textContent='⚠️ '+err+w+' (nouvel essai automatique)';
- else if(n)$('sy').textContent='⏳'+w;
- else $('sy').textContent='✅ Synchronisé avec Google Sheets'+(LAST?' · '+hm(LAST):'');
+ if(!CFG.u||!CFG.k)return 'Google Sheets non configuré (⚙️) — données sur cet appareil'+w;
+ if(!navigator.onLine)return 'Hors ligne'+(n?w:' · tout est à jour');
+ if(busy)return 'Synchronisation en cours…';
+ if(err)return err+w+' (nouvel essai automatique)';
+ if(n)return 'Envoi en attente'+w;
+ return 'Synchronisé avec Google Sheets'+(LAST?' · '+hm(LAST):'');
 }
+function status(msg){
+ if(msg){$('sy').textContent=msg;clearTimeout(msgT);msgT=setTimeout(function(){$('sy').textContent=''},4000)}
+ var ok=CFG.u&&CFG.k&&navigator.onLine&&!err&&!Q.length&&(LAST||busy);
+ var c=$('cloud');if(busy)return;c.classList.toggle('ok',!!ok);c.title=detail();
+}
+$('cloud').onclick=function(){status(detail())};
 function soon(d){clearTimeout(tmr);tmr=setTimeout(sync,d==null?800:d)}
 function wire(o){return{id:o.id,ts:o.ts,dev:o.dev,op:o.op,tab:lab(o.t),d:o.d||'',c:o.c,y:o.y==null?'':String(o.y)}}
 function initPayload(){var c=[],y=[];T.forEach(function(t){var k=t[0];DB.c[k].forEach(function(n){c.push([t[1],n]);DN.forEach(function(d){ys(DB,k,d,n).forEach(function(v){y.push([t[1],d,n,String(v)])})})})});return{countries:c,years:y}}
@@ -223,7 +259,7 @@ $('xp').onclick=async function(){
  if(!window.XLSX){status('Export Excel indisponible (bibliothèque non chargée)');return}
  var ok=0;
  for(var k=0;k<FM.length;k++){if(!DB.c[FM[k][0]].length)continue;XLSX.writeFile(wbFor(FM[k][0]),FM[k][1]);ok++;await new Promise(function(r){setTimeout(r,600)})}
- status(ok+' fichier(s) Excel enregistré(s)');setTimeout(function(){status()},4000);
+ status(ok+' fichier(s) Excel enregistré(s)');
 };
 
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('sw.js').catch(function(){});

@@ -1,5 +1,5 @@
 // Ma collection euro — mode hors ligne
-const CACHE = 'numis-v3';
+const CACHE = 'numis-v4';
 const CDN = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
